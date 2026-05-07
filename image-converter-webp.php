@@ -52,9 +52,12 @@ function icfw_can_autoload(): bool {
  */
 function icfw_autoload_notice(): void {
 	printf(
-		/* translators: plugin autoload file path. */
-		esc_html__( 'Fatal Error: %s file does not exist, please check if Composer is installed!', 'image-converter-webp' ),
-		esc_html( ICFW_AUTOLOAD )
+		'<div class="notice notice-error"><p>%s</p></div>',
+		sprintf(
+			/* translators: plugin autoload file path. */
+			esc_html__( 'Fatal Error: %s file does not exist. Please run `composer install` before activating Image Converter for WebP.', 'image-converter-webp' ),
+			esc_html( ICFW_AUTOLOAD )
+		)
 	);
 }
 
@@ -71,5 +74,25 @@ function icfw_run(): void {
 		add_action( 'admin_notices', 'icfw_autoload_notice' );
 	}
 }
+
+register_activation_hook(
+	__FILE__,
+	function () {
+		if ( ! file_exists( ICFW_AUTOLOAD ) ) {
+			// Deactivate immediately so the plugin is never left in a broken active state.
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+
+			wp_die(
+				sprintf(
+					/* translators: plugin autoload file path. */
+					esc_html__( 'Image Converter for WebP could not be activated. The file %s does not exist. Please run `composer install` before activating the plugin.', 'image-converter-webp' ),
+					'<code>' . esc_html( ICFW_AUTOLOAD ) . '</code>'
+				),
+				esc_html__( 'Plugin Activation Error', 'image-converter-webp' ),
+				[ 'back_link' => true ]
+			);
+		}
+	}
+);
 
 icfw_run();
