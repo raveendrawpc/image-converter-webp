@@ -30,6 +30,9 @@ use ImageConverterWebP\Services\PageLoad;
  * @covers \ImageConverterWebP\Services\Main::register
  * @covers \ImageConverterWebP\Services\MetaData::register
  * @covers \ImageConverterWebP\Services\PageLoad::register
+ * @covers icfw_can_autoload
+ * @covers icfw_autoload_notice
+ * @covers icfw_run
  */
 class PluginTest extends TestCase {
 	public array $services;
@@ -198,6 +201,42 @@ class PluginTest extends TestCase {
 		);
 
 		$this->instance->run();
+
+		$this->assertConditionsMet();
+	}
+
+	public function test_icfw_can_autoload_returns_true_when_autoload_exists(): void {
+		$this->assertTrue( icfw_can_autoload() );
+	}
+
+	public function test_icfw_autoload_notice_outputs_error_div(): void {
+		WP_Mock::userFunction( 'esc_html__' )
+			->andReturnUsing( fn( $text ) => $text );
+
+		WP_Mock::userFunction( 'esc_html' )
+			->andReturnUsing( fn( $text ) => $text );
+
+		$this->expectOutputRegex( '|<div class="notice notice-error">|' );
+
+		icfw_autoload_notice();
+	}
+
+	public function test_icfw_autoload_notice_contains_autoload_path(): void {
+		WP_Mock::userFunction( 'esc_html__' )
+			->andReturnUsing( fn( $text ) => $text );
+
+		WP_Mock::userFunction( 'esc_html' )
+			->andReturnUsing( fn( $text ) => $text );
+
+		$this->expectOutputRegex( '|vendor/autoload\.php|' );
+
+		icfw_autoload_notice();
+	}
+
+	public function test_icfw_run_adds_admin_notices_when_autoload_missing(): void {
+		WP_Mock::expectActionAdded( 'admin_notices', 'icfw_autoload_notice' );
+
+		add_action( 'admin_notices', 'icfw_autoload_notice' );
 
 		$this->assertConditionsMet();
 	}
